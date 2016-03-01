@@ -1,0 +1,147 @@
+package com.neumont.csc150.controller;
+
+import com.neumont.csc150.model.*;
+
+public class HouseController {
+	private static final int ROOMMAX = 101;
+	private static final int BIOME_1_END = 9;
+	private static final int BIOME_2_END = 29;
+	private static final int BIOME_3_END = 59;
+	private static final int BIOME_4_END = 99;
+	private static final int FINAL_ROOM = ROOMMAX - 1;
+	private static final int INSTANCE_MAX = 10;
+	private static final int FOEMAX = 6;
+	private static final String BIOME_1_NAME = "Forest";
+	private static final String BIOME_2_NAME = "Mountain";
+	private static final String BIOME_3_NAME = "Crimson City";
+	private static final String BIOME_4_NAME = "Cavern";
+	private static final String FINAL_ROOM_NAME = "Ragnarok Chamber";
+	private Room[] rooms = new Room[ROOMMAX];
+	private Entity[] foes = new Entity[FOEMAX];
+	private String[] instances = new String[INSTANCE_MAX];
+	private Entity player;
+	private String name;
+	private String currentBiome;
+	private int currentRoom;
+	
+	public void createRooms() {
+		tileBiome biome;
+		
+//		/// Biome 1 ///
+		biome = tileBiome.FOREST;
+		rooms[0] = new Room(biome, roomType.bottomTop, 1);
+		rooms[1] = new Room(biome, roomType.bottomTop, 2);
+		rooms[2] = new Room(biome, roomType.bottomRight, 3);
+		rooms[3] = new Room(biome, roomType.leftTop, 4);
+		rooms[4] = new Room(biome, roomType.bottomTop, 5);
+		rooms[5] = new Room(biome, roomType.bottomLeft, 6);
+		rooms[6] = new Room(biome, roomType.rightTop, 7);
+		rooms[7] = new Room(biome, roomType.bottomTop, 8);
+		rooms[8] = new Room(biome, roomType.bottomLeft, 9);
+		rooms[9] = new Room(biome, roomType.rightLeft, 10);
+		
+//		/// Biome 2 ///
+		biome = tileBiome.MOUNTAIN;
+		rooms[10] = new Room(biome, roomType.rightLeft, 11);
+		rooms[11] = new Room(biome, roomType.rightTop, 12);
+		rooms[12] = new Room(biome, roomType.bottomLeft, 13);
+		rooms[13] = new Room(biome, roomType.rightLeft, 14);
+		rooms[14] = new Room(biome, roomType.rightTop, 15);
+		rooms[15] = new Room(biome, roomType.bottomLeft, 16);
+		rooms[16] = new Room(biome, roomType.rightLeft, 17);
+		rooms[17] = new Room(biome, roomType.rightLeft, 18);
+		rooms[18] = new Room(biome, roomType.rightTop, 19);
+		rooms[19] = new Room(biome, roomType.bottomTop, 20);
+		rooms[20] = new Room(biome, roomType.bottomTop, 21);
+		rooms[21] = new Room(biome, roomType.bottomLeft, 22);
+		rooms[22] = new Room(biome, roomType.rightTop, 23);
+		rooms[23] = new Room(biome, roomType.bottomTop, 24);
+		rooms[24] = new Room(biome, roomType.bottomRight, 25);
+		rooms[25] = new Room(biome, roomType.leftRight, 26);
+		rooms[26] = new Room(biome, roomType.leftRight, 27);
+		rooms[27] = new Room(biome, roomType.leftRight, 28);
+		rooms[28] = new Room(biome, roomType.leftTop, 29);
+		rooms[29] = new Room(biome, roomType.bottomTop, 30);
+		
+//		/// Biome 3 ///
+		biome = tileBiome.URBAN;
+		rooms[30] = new Room(biome, roomType.bottomTop, 31);
+		rooms[31] = new Room(biome, roomType.bottomTop, 32);
+		rooms[32] = new Room(biome, roomType.bottomLeft, 33);
+		rooms[33] = new Room(biome, roomType.rightLeft, 34);
+		rooms[34] = new Room(biome, roomType.rightLeft, 35);
+		rooms[35] = new Room(biome, roomType.rightTop, 36);
+		rooms[36] = new Room(biome, roomType.bottomTop, 37);
+		rooms[37] = new Room(biome, roomType.bottomTop, 38);
+		rooms[38] = new Room(biome, roomType.bottomRight, 39);
+		rooms[39] = new Room(biome, roomType.leftRight, 40);
+		rooms[40] = new Room(biome, roomType.leftRight, 41);
+		rooms[41] = new Room(biome, roomType.leftTop, 42);
+		rooms[42] = new Room(biome, roomType.bottomTop, 43);
+		rooms[43] = new Room(biome, roomType.bottomTop, 44);
+		rooms[44] = new Room(biome, roomType.bottomTop, 45);
+		rooms[45] = new Room(biome, roomType.bottomTop, 46);
+		rooms[46] = new Room(biome, roomType.bottomTop, 47);
+		rooms[47] = new Room(biome, roomType.bottomRight, 48);
+		rooms[48] = new Room(biome, roomType.leftRight, 49);
+		rooms[49] = new Room(biome, roomType.leftRight, 50);
+		rooms[50] = new Room(biome, roomType.leftBottom, 51);
+		rooms[51] = new Room(biome, roomType.topBottom, 52);
+		rooms[52] = new Room(biome, roomType.topBottom, 53);
+		rooms[53] = new Room(biome, roomType.topRight, 54);
+		rooms[54] = new Room(biome, roomType.leftRight, 55);
+		rooms[55] = new Room(biome, roomType.leftRight, 56);
+		rooms[56] = new Room(biome, roomType.leftTop, 57);
+		rooms[57] = new Room(biome, roomType.bottomTop, 58);
+		rooms[58] = new Room(biome, roomType.bottomTop, 59);
+		rooms[59] = new Room(biome, roomType.bottomTop, 60);
+		
+//		/// Biome 4 ///
+		biome = tileBiome.CAVERN;
+		rooms[60] = new Room(biome, roomType.bottomTop, 61);
+		rooms[61] = new Room(biome, roomType.bottomRight, 62);
+		rooms[62] = new Room(biome, roomType.leftRight, 63);
+		rooms[63] = new Room(biome, roomType.leftTop, 64);
+		rooms[64] = new Room(biome, roomType.bottomRight, 65);
+		rooms[65] = new Room(biome, roomType.leftTop, 66);
+		rooms[66] = new Room(biome, roomType.bottomRight, 67);
+		rooms[67] = new Room(biome, roomType.leftTop, 68);
+		rooms[68] = new Room(biome, roomType.bottomTop, 69);
+		rooms[69] = new Room(biome, roomType.bottomTop, 70);
+		rooms[70] = new Room(biome, roomType.bottomTop, 71);
+		rooms[71] = new Room(biome, roomType.bottomLeft, 72);
+		rooms[72] = new Room(biome, roomType.rightTop, 73);
+		rooms[73] = new Room(biome, roomType.bottomLeft, 74);
+		rooms[74] = new Room(biome, roomType.rightTop, 75);
+		rooms[75] = new Room(biome, roomType.bottomLeft, 76);
+		rooms[76] = new Room(biome, roomType.rightLeft, 77);
+		rooms[77] = new Room(biome, roomType.rightLeft, 78);
+		rooms[78] = new Room(biome, roomType.rightLeft, 79);
+		rooms[79] = new Room(biome, roomType.rightBottom, 80);
+		rooms[80] = new Room(biome, roomType.topLeft, 81);
+		rooms[81] = new Room(biome, roomType.rightBottom, 82);
+		rooms[82] = new Room(biome, roomType.topLeft, 83);
+		rooms[83] = new Room(biome, roomType.rightBottom, 84);
+		rooms[84] = new Room(biome, roomType.topBottom, 85);
+		rooms[85] = new Room(biome, roomType.topBottom, 86);
+		rooms[86] = new Room(biome, roomType.topBottom, 87);
+		rooms[87] = new Room(biome, roomType.topRight, 88);
+		rooms[88] = new Room(biome, roomType.leftBottom, 89);
+		rooms[89] = new Room(biome, roomType.topRight, 90);
+		rooms[90] = new Room(biome, roomType.leftBottom, 91);
+		rooms[91] = new Room(biome, roomType.topRight, 92);
+		rooms[92] = new Room(biome, roomType.leftRight, 93);
+		rooms[93] = new Room(biome, roomType.leftTop, 94);
+		rooms[94] = new Room(biome, roomType.bottomTop, 95);
+		rooms[95] = new Room(biome, roomType.bottomTop, 96);
+		rooms[96] = new Room(biome, roomType.bottomTop, 97);
+		rooms[97] = new Room(biome, roomType.bottomTop, 98);
+		rooms[98] = new Room(biome, roomType.bottomTop, 99);
+		rooms[99] = new Room(biome, roomType.bottomTop, 100);
+		
+//		/// Final Room ///
+		rooms[100] = new Room(tileBiome.FINAL, roomType.bottomTop, 101);
+		
+	}
+
+}
