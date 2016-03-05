@@ -1,16 +1,28 @@
 package com.neumont.csc150.controller;
 
 import com.neumont.csc150.model.*;
+import com.neumont.csc150.view.ViewInterface;
 
-public class HouseController {
+public class HouseController implements ControllerInterface {
 	private static final int ROOMMAX = 101;
-	private static final int BIOME_1_END = 9;
-	private static final int BIOME_2_END = 29;
-	private static final int BIOME_3_END = 59;
-	private static final int BIOME_4_END = 99;
-	private static final int FINAL_ROOM = ROOMMAX - 1;
-	private static final int INSTANCE_MAX = 10;
+	private static final int BIOME_1_END = 10;
+	private static final int BIOME_2_END = 30;
+	private static final int BIOME_3_END = 60;
+	private static final int BIOME_4_END = 100;
+	private static final int FOREST_BOSS = BIOME_1_END - 1;
+	private static final int MOUNTAIN_BOSS = BIOME_2_END - 1;
+	private static final int URBAN_BOSS = BIOME_3_END - 1;
+	private static final int CAVERN_BOSS = BIOME_4_END - 1;
+	private static final int FINAL_BOSS = ROOMMAX - 1;
+	private static final int INSTANCE_MAX = 15;
+	private static final int BOSS_MAX = 5;
 	private static final int FOEMAX = 6;
+	private static final int ITEMMAX = 30;
+	private static final int WEAPON_INDEX = 0;
+	private static final int ARMOR_INDEX = 1;
+	private static final int ACCESSORY_INDEX = 2;
+	private static final int CAPRA_X = 2;
+	private static final int CAPRA_Y = 1;
 	private static final String BIOME_1_NAME = "Forest";
 	private static final String BIOME_2_NAME = "Mountain";
 	private static final String BIOME_3_NAME = "Crimson City";
@@ -18,15 +30,669 @@ public class HouseController {
 	private static final String FINAL_ROOM_NAME = "Ragnarok Chamber";
 	private Room[] rooms = new Room[ROOMMAX];
 	private Entity[] foes = new Entity[FOEMAX];
+	private Item[] inventory = new Item[ITEMMAX];
 	private String[] instances = new String[INSTANCE_MAX];
+	private String[] bossInstances = new String[BOSS_MAX];
 	private Entity player;
 	private String name;
-	private String currentBiome;
+	private tileBiome currentBiome;
 	private int currentRoom;
+	private ViewInterface UI;
 	
+//	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	/// G A M E   M E T H O D S ////
+//	///////////////////////////////
+	public void run() {
+		this.createRooms();
+		this.createInstances();
+		//create driver window, which calls the main game into existence and sets name and new game or loads
+		
+	}
+	
+	public void newGame(String name) {
+		player = new Entity(name, 0, 1000, 200, 200, 200);
+		this.setCurrentRoom(0);
+		this.setCurrentBiome(rooms[this.getCurrentRoom()].getBiome());
+	}
+	/**
+	 * The save method is incremental, only saving the floor that starts the biome.
+	 * Items and new equipment are not saved, to prevent farming and subsequent overflow.
+	 * Experience gained before quitting is lost, but experience gained before death is retained.
+	 * @param filePath
+	 */
+	public void saveGame(String filePath) {
+		
+	}
+	
+	public void loadGame(String filePath) {
+		
+	}
+	
+	public String getBiomeName() {
+		switch(this.getCurrentBiome()) {
+		case FOREST:
+			return BIOME_1_NAME;
+		case MOUNTAIN:
+			return BIOME_2_NAME;
+		case URBAN:
+			return BIOME_3_NAME;
+		case CAVERN:
+			return BIOME_4_NAME;
+		case FINAL:
+			return FINAL_ROOM_NAME;
+		default:
+			return "???";
+		}
+		
+	}
+//	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	/// G E N E R A T I O N   M E T H O D S ////
+//	///////////////////////////////////////////
+	public void loadRoom() {
+		Room room = rooms[this.getCurrentRoom()];
+		Entity foe;
+		Tile tile;
+		boolean bossRoom = false;
+		this.checkBiome();
+		this.instantiatePlayer();
+		if (this.getCurrentRoom() == FOREST_BOSS) {
+			bossRoom = true;
+		}
+		if (this.getCurrentRoom() == MOUNTAIN_BOSS) {
+			bossRoom = true;
+		}
+		if (this.getCurrentRoom() == URBAN_BOSS) {
+			bossRoom = true;
+		}
+		if (this.getCurrentRoom() == CAVERN_BOSS) {
+			bossRoom = true;
+		}
+		if (this.getCurrentRoom() == FINAL_BOSS) {
+			bossRoom = true;
+		}
+		if (!bossRoom) {
+			this.parseInstance(instances[(int)(Math.random() * INSTANCE_MAX)]);
+		}
+		else {
+			switch (this.getCurrentBiome()) {
+			case FOREST:
+				this.createBoss(this.bossInstances[0]);
+				break;
+			case MOUNTAIN:
+				this.createBoss(this.bossInstances[1]);
+				break;
+			case URBAN:
+				this.createBoss(this.bossInstances[2]);
+				break;
+			case CAVERN:
+				this.createBoss(this.bossInstances[3]);
+				break;
+			case FINAL:
+				this.createBoss(this.bossInstances[4]);
+				break;
+			}
+		}
+		for (int index = 0; index < FOEMAX; index++) {
+			foe = foes[index];
+			
+			if (foe != Entity.NONE) {
+				tile = room.getTile(foe.getxCoord(), foe.getyCoord());
+				tile.setOccupied(true);
+				tile.setOccupant(foe);
+			}
+			else {
+				break;
+			}
+		}
+		// method call to graphically display this room and its enemies
+	}
+	
+	public void checkBiome() {
+		int roomNumber = this.getCurrentRoom();
+		
+		if (roomNumber < BIOME_1_END) {
+			this.setCurrentBiome(tileBiome.FOREST);
+		}
+		else if (roomNumber < BIOME_2_END) {
+			this.setCurrentBiome(tileBiome.MOUNTAIN);
+		}
+		else if (roomNumber < BIOME_3_END) {
+			this.setCurrentBiome(tileBiome.URBAN);
+		}
+		else if (roomNumber < BIOME_4_END) {
+			this.setCurrentBiome(tileBiome.CAVERN);
+		}
+		else {
+			this.setCurrentBiome(tileBiome.FINAL);
+		}
+		
+	}
+	
+	private void instantiatePlayer() {
+		Room room = this.rooms[this.getCurrentRoom()];
+		Tile tile;
+		roomType type = room.getType();
+		int spawnX = room.getSpawnX();
+		int spawnY = room.getSpawnY();
+		
+		if (type == roomType.bottomLeft || type == roomType.bottomRight || type == roomType.bottomTop) {
+			this.player.setxCoord(spawnX);
+			this.player.setyCoord(spawnY - 1);
+			tile = room.getTile(this.player.getxCoord(), this.player.getyCoord());
+			tile.setOccupied(true);
+			tile.setOccupant(this.player);
+		}
+		if (type == roomType.leftBottom || type == roomType.leftRight || type == roomType.leftTop) {
+			this.player.setxCoord(spawnX + 1);
+			this.player.setyCoord(spawnY);
+			tile = room.getTile(this.player.getxCoord(), this.player.getyCoord());
+			tile.setOccupied(true);
+			tile.setOccupant(this.player);
+		}
+		if (type == roomType.rightBottom || type == roomType.rightLeft || type == roomType.rightTop) {
+			this.player.setxCoord(spawnX - 1);
+			this.player.setyCoord(spawnY);
+			tile = room.getTile(this.player.getxCoord(), this.player.getyCoord());
+			tile.setOccupied(true);
+			tile.setOccupant(this.player);
+		}
+		if (type == roomType.topBottom || type == roomType.topLeft || type == roomType.topRight) {
+			this.player.setxCoord(spawnX);
+			this.player.setyCoord(spawnY + 1);
+			tile = room.getTile(this.player.getxCoord(), this.player.getyCoord());
+			tile.setOccupied(true);
+			tile.setOccupant(this.player);
+		}
+		
+	}
+//	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	/// E N E M I E S   A N D   P A T H - F I N D I N G ////
+//	///////////////////////////////////////////////////////
+	/**
+	 * Takes a string from random selection and uses it to generate the enemies of a room.
+	 * For use with the instances array.
+	 * @param instance
+	 */
+	public void parseInstance(String instance) {
+		Entity foe;
+		Room room = this.rooms[this.getCurrentRoom()];
+		String[] parse = instance.split(":");
+		int limit = (int)(Math.random() * player.getLevel());
+		int count = parse.length;
+		
+		for (int index = 0; index < count; index++) {
+			foe = this.foes[index];
+			try {
+//				/// Fixed Enemies ///
+				if (parse[index].equals("cA")) {
+					foe = new Entity("Capra", 2, 2000, 400, 400, 400); // Capra, event demon
+					foe.setxCoord(CAPRA_X);
+					foe.setyCoord(CAPRA_Y);
+					foe.setDirection(Direction.SOUTH);
+					room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupied(true);
+					room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupant(foe);
+				}
+				if (parse[index].equals("oR")) {
+					foe = new Entity("Ornstein", 1, 1000, 300, 300, 350);
+					foe.setxCoord(CAPRA_X - 1);
+					foe.setyCoord(CAPRA_Y);
+					foe.setDirection(Direction.EAST);
+					room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupied(true);
+					room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupant(foe);
+				}
+				if (parse[index].equals("sM")) {
+					foe = new Entity("Smough", 1, 1000, 300, 350, 300);
+					foe.setxCoord(CAPRA_X + 1);
+					foe.setyCoord(CAPRA_Y);
+					foe.setDirection(Direction.WEST);
+					room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupied(true);
+					room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupant(foe);
+				}
+				if (parse[index].equals("aT")) {
+					foe = new Entity("Artorias", 1, 1000, 350, 300, 300);
+					foe.setxCoord(CAPRA_X);
+					foe.setyCoord(CAPRA_Y + 1);
+					foe.setDirection(Direction.NORTH);
+					room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupied(true);
+					room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupant(foe);
+				}
+				if (parse[index].equals("fL")) {
+					foe = new Entity("Floofy", 2, 2000, 750, 750, 750);
+					foe.setxCoord(this.foes[0].getxCoord() + 1);
+					foe.setyCoord(this.foes[0].getyCoord());
+					foe.setDirection(Direction.SOUTH);
+					room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupied(true);
+					room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupant(foe);
+				}
+//				/// Scaled Enemies ///
+				if (parse[index].equals("Ag")) {
+					this.createDynamicFoe("Agni", "atk", index, limit);
+				}
+				if (parse[index].equals("Db")) {
+					this.createDynamicFoe("Diba", "def", index, limit);
+				}
+				if (parse[index].equals("Se")) {
+					this.createDynamicFoe("Seth", "spd", index, limit);
+				}
+				if (parse[index].equals("Ar")) {
+					this.createStrongDynamicFoe("Argos", "atk", index, limit);
+				}
+				if (parse[index].equals("Dy")) {
+					this.createStrongDynamicFoe("Dynon", "def", index, limit);
+				}
+				if (parse[index].equals("Sr")) {
+					this.createStrongDynamicFoe("Sorig", "spd", index, limit);
+				}
+			}
+			catch (IndexOutOfBoundsException e) {
+				foe = Entity.NONE;
+			}
+		}
+		while (!this.finalizeFoes()) {} // Keeps calling finalize until all the enemies are behaving and not phasing together
+		
+	}
+	/**
+	 * Creates a boss encounter at set floors
+	 * @param bossInstance
+	 */
+	public void createBoss(String instance) {
+		Entity boss = this.foes[0];
+		Room room = this.rooms[this.getCurrentRoom()];
+		
+		for (@SuppressWarnings("unused") Entity foe : foes) {
+			foe = Entity.NONE;
+		}
+		
+		if (instance.equals("dI")) {
+			boss = new Entity("Dirge", 1, 2000, 200, 200, 200);
+		}
+		if (instance.equals("eP")) {
+			boss = new Entity("Epitaph", 1, 2000, 300, 300, 300); 
+		}
+		if (instance.equals("kN")) {
+			boss = new Entity("Knell", 1, 3000, 400, 400, 400);
+		}
+		if (instance.equals("rQ")) {
+			boss = new Entity("Requiem", 1, 4000, 500, 500, 500);
+		}
+		if (instance.equals("rA")) {
+			boss = new Entity("Ragnarok", 1, 20, 600, 9999, 600);
+		}
+		
+		boss.setxCoord(Room.ROOMMAX_X / 2);
+		boss.setyCoord(Room.ROOMMAX_Y / 2);
+		boss.setDirection(Direction.SOUTH);
+		room.getTile(boss.getxCoord(), boss.getyCoord()).setOccupied(true);
+		room.getTile(boss.getxCoord(), boss.getyCoord()).setOccupant(boss);
+		
+	}
+	/**
+	 * creates a standard enemy, scaled to the player's level.
+	 * @param name
+	 * @param type
+	 * @param index
+	 * @param limit
+	 */
+	private void createDynamicFoe(String name, String type, int index, int limit) {
+		Entity foe = this.foes[index];
+		Room room = this.rooms[this.getCurrentRoom()];
+		
+		if (type.equals("atk")) {
+			foe = new Entity(name, 1, 1000, 200, 100, 100);
+		}
+		if (type.equals("def")) {
+			foe = new Entity(name, 1, 1000, 100, 200, 100);
+		}
+		if (type.equals("spd")) {
+			foe = new Entity(name, 1, 1000, 100, 100, 200);
+		}
+		
+		foe.setxCoord((int)(Math.random() * (Room.ROOMMAX_X - Room.PADDING) + (Room.PADDING / 2)));
+		foe.setyCoord((int)(Math.random() * (Room.ROOMMAX_Y - Room.PADDING) + (Room.PADDING / 2)));
+		foe.setDirection(Direction.SOUTH);
+		room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupied(true);
+		room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupant(foe);
+		
+		for (int lvIndex = 0; lvIndex < limit; lvIndex++) {
+			foe.addExp(this.player);
+			foe.checkExp();
+		}
+		
+	}
+	/**
+	 * Creates a stronger foe scaled to the player's level.
+	 * Intended for later in the game.
+	 * @param name
+	 * @param type
+	 * @param index
+	 * @param limit
+	 */
+	private void createStrongDynamicFoe(String name, String type, int index, int limit) {
+		Entity foe = this.foes[index];
+		Room room = this.rooms[this.getCurrentRoom()];
+		
+		if (type.equals("atk")) {
+			foe = new Entity(name, 1, 1500, 300, 200, 200);
+		}
+		
+		if (type.equals("def")) {
+			foe = new Entity(name, 1, 1500, 200, 300, 200);
+		}
+		
+		if (type.equals("spd")) {
+			foe = new Entity(name, 1, 1500, 200, 200, 300);
+		}
+		foe.setxCoord((int)(Math.random() * (Room.ROOMMAX_X - Room.PADDING) + (Room.PADDING / 2)));
+		foe.setyCoord((int)(Math.random() * (Room.ROOMMAX_Y - Room.PADDING) + (Room.PADDING / 2)));
+		foe.setDirection(Direction.SOUTH);
+		room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupied(true);
+		room.getTile(foe.getxCoord(), foe.getyCoord()).setOccupant(foe);
+		
+		for (int lvIndex = 0; lvIndex < (limit + 1); lvIndex++) {
+			foe.addExp(this.player);
+			foe.checkExp();
+		}
+		
+	}
+	/**
+	 * Creates a static foe with predetermined stats and positioning.
+	 * @param name
+	 * @param index
+	 */
+	private void createStaticFoe(String name, int index) {
+		
+	}
+	/**
+	 * Ensures that all enemies are properly generated, and not occupying the same square.
+	 * This method randomly moves a foe when they fail to meet its constraints until they pass.
+	 * Also prevents enemies from being in the same square as the player, who is generated first.
+	 * When foes are relocated, the tiles' values are maintained as well to prevent discrepancies.
+	 * @return
+	 */
+	private boolean finalizeFoes() {
+		Room room = this.rooms[this.getCurrentRoom()];
+		int move;
+		
+		for (Entity current : this.foes) {
+			
+			if ((Math.random() * 2) < 1) {
+				move = 1;
+			}
+			else {
+				move = -1;
+			}
+			
+			if (current == null) {
+				current = Entity.NONE;
+			}
+			if (current.getxCoord() == this.player.getxCoord() && current.getyCoord() == this.player.getyCoord()) {
+				if ((Math.random() * 2 < 1)) {
+					room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(this.player);
+					current.setxCoord(current.getxCoord() + move);
+					room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(true);
+					room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(current);
+				}
+				else {
+					room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(this.player);
+					current.setyCoord(current.getyCoord() + move);
+					room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(true);
+					room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(current);
+				}
+				
+				return false;
+			}
+			
+			for (Entity foe : this.foes) {
+				
+				if (current.getxCoord() == foe.getxCoord() && current.getyCoord() == foe.getyCoord()) {
+					if ((Math.random() * 2 < 1)) {
+						room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(current);
+						foe.setxCoord(foe.getxCoord() + move);
+						room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(true);
+						room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(foe);
+					}
+					else {
+						room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(current);
+						foe.setyCoord(foe.getyCoord() + move);
+						room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(true);
+						room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(foe);
+					}
+					
+					return false;
+				}
+			}
+			
+			if (current.getxCoord() < (Room.PADDING / 2)) {
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(false);
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(Entity.NONE);
+				current.setxCoord(current.getxCoord() + Math.abs(move));
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(true);
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(current);
+				return false;
+			}
+			if (current.getxCoord() > (Room.ROOMMAX_X - Room.PADDING)) {
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(false);
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(Entity.NONE);
+				current.setxCoord(current.getxCoord() - Math.abs(move));
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(true);
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(current);
+				return false;
+			}
+			if (current.getyCoord() < (Room.PADDING / 2)) {
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(false);
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(Entity.NONE);
+				current.setyCoord(current.getyCoord() + Math.abs(move));
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(true);
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(current);
+				return false;
+			}
+			if (current.getyCoord() > (Room.ROOMMAX_Y - Room.PADDING)) {
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(false);
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(Entity.NONE);
+				current.setyCoord(current.getyCoord() - Math.abs(move));
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupied(true);
+				room.getTile(current.getxCoord(), current.getyCoord()).setOccupant(current);
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Each enemy will check for hostiles, then target and move towards the closest one.
+	 * This includes the player.
+	 * Attacking an eligible target is also included.
+	 * @param entity
+	 */
+	public void aiTurn(Entity entity) {
+		Entity target = new Entity();
+		Room room = rooms[this.getCurrentRoom()];
+		int entityX = entity.getxCoord();
+		int entityY = entity.getyCoord();
+		int minDistance = 0;
+		int foeX;
+		int foeY;
+		int xDistance = 0;
+		int yDistance = 0;
+		int targetxDistance = 0;
+		int targetyDistance = 0;
+//		/// Check if others in the foe array are hostile and nearby ///
+		for (Entity foe: foes) {
+			if (entity.getHostile() != foe.getHostile() && foe != Entity.NONE) {
+				foeX = foe.getxCoord();
+				foeY = foe.getyCoord();
+				xDistance = Math.abs(entityX - foeX);
+				yDistance = Math.abs(entityY - foeY);
+				
+				if (minDistance == 0 || minDistance > (xDistance + yDistance)) {
+					minDistance = xDistance + yDistance;
+					targetxDistance = xDistance;
+					targetyDistance = yDistance;
+					target = foe;
+				}
+			}
+		}
+//		/// Sets the player as a target if they are the closest hostile ///
+		foeX = player.getxCoord();
+		foeY = player.getyCoord();
+		xDistance = Math.abs(entityX - foeX);
+		yDistance = Math.abs(entityY - foeY);
+			
+		if (minDistance == 0 || minDistance > (xDistance + yDistance)) {
+			minDistance = xDistance + yDistance;
+			targetxDistance = xDistance;
+			targetyDistance = yDistance;
+			target = player;
+		}
+//		/// Moves to target randomly if far from target ///
+		if ((Math.random() * 2) < 1) {
+			if (entity.getxCoord() < target.getxCoord()) {
+				if (targetxDistance > 1 && !room.getTile(entity.getxCoord() + 1, entity.getyCoord()).isOccupied()) {
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(false);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(Entity.NONE);
+					entity.setxCoord(entity.getxCoord() + 1);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(true);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(entity);
+					return;
+				}
+			}
+			if (entity.getxCoord() > target.getxCoord()) {
+				if (targetxDistance > 1 && !room.getTile(entity.getxCoord() - 1, entity.getyCoord()).isOccupied()) {
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(false);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(Entity.NONE);
+					entity.setxCoord(entity.getxCoord() - 1);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(true);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(entity);
+					return;
+				}
+			}
+		}
+		else {
+			if (entity.getyCoord() < target.getyCoord()) {
+				if (targetyDistance > 1 && !room.getTile(entity.getxCoord(), entity.getyCoord() + 1).isOccupied()) {
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(false);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(Entity.NONE);
+					entity.setyCoord(entity.getyCoord() + 1);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(true);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(entity);
+					return;
+				}
+			}
+			if (entity.getyCoord() > target.getyCoord()) {
+				if (targetyDistance > 1 && !room.getTile(entity.getxCoord(), entity.getyCoord() + 1).isOccupied()) {
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(false);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(Entity.NONE);
+					entity.setyCoord(entity.getyCoord() - 1);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(true);
+					room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(entity);
+					return;
+				}
+			}
+		}
+//		/// Handles attacking when in range and lateral moves ///
+		if (targetxDistance == 0) {
+			if (targetyDistance == 1) {
+				entity.attack(target);
+				return;
+			}
+			else {
+				if (entity.getyCoord() < target.getyCoord()) {
+					if (targetyDistance > 1 && !room.getTile(entity.getxCoord(), entity.getyCoord() + 1).isOccupied()) {
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(false);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(Entity.NONE);
+						entity.setyCoord(entity.getyCoord() + 1);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(true);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(entity);
+						return;
+					}
+				}
+				if (entity.getyCoord() > target.getyCoord()) {
+					if (targetyDistance > 1 && !room.getTile(entity.getxCoord(), entity.getyCoord() - 1).isOccupied()) {
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(false);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(Entity.NONE);
+						entity.setyCoord(entity.getyCoord() - 1);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(true);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(entity);
+						return;
+					}
+				}
+			}
+		}
+		if (targetyDistance == 0) {
+			if (targetxDistance == 1) {
+				entity.attack(target);
+				return;
+			}
+			else {
+				if (entity.getxCoord() < target.getxCoord()) {
+					if (targetxDistance > 1 && !room.getTile(entity.getxCoord() + 1, entity.getyCoord()).isOccupied()) {
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(false);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(Entity.NONE);
+						entity.setxCoord(entity.getxCoord() + 1);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(true);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(entity);
+						return;
+					}
+				}
+				if (entity.getxCoord() > target.getxCoord()) {
+					if (targetxDistance > 1 && !room.getTile(entity.getxCoord() - 1, entity.getyCoord()).isOccupied()) {
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(false);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(Entity.NONE);
+						entity.setxCoord(entity.getxCoord() - 1);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupied(true);
+						room.getTile(entity.getxCoord(), entity.getyCoord()).setOccupant(entity);
+						return;
+					}
+				}
+			}
+		}
+		
+	}
+	
+//	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	/// G E N E R A T I O N ////
+//	///////////////////////////
+	/**
+	 * Initializes the instances array, which is used to create enemies on a floor. Also creates bosses for each biome, and the end.
+	 * Forest uses 3-5.
+	 * Mountain uses 2-8.
+	 * City uses 1-11.
+	 * Cavern uses 0-14.
+	 */
+	public void createInstances() {
+//		/// Fixed Instances ///
+		instances[0]  = "cA:cA";
+		instances[1]  = "cA:oR:sM:aT";
+		instances[2]  = "Ag:fL";
+//		/// Scaled Instances ///
+		instances[3]  = "Ag";
+		instances[4]  = "Ag:Db";
+		instances[5]  = "Ag:Db:Se";
+		instances[6]  = "Ag:Db:Se:Ag";
+		instances[7]  = "Ag:Db:Se:Ag:Db";
+		instances[8]  = "Ag:Db:Se:Ag:Db:Se";
+		instances[9]  = "Ar";
+		instances[10] = "Ar:Dy";
+		instances[11] = "Ar:Dy:Sr";
+		instances[12] = "Ar:Dy:Sr:Ar";
+		instances[13] = "Ar:Dy:Sr:Ar:Dy";
+		instances[14] = "Ar:Dy:Sr:Ar:Dy:Sr";
+//		/// Bosses ///
+		bossInstances[0] = "dI";
+		bossInstances[1] = "eP";
+		bossInstances[2] = "kN";
+		bossInstances[3] = "rQ";
+		bossInstances[4] = "rA";
+		
+	}
+	/**
+	 * Sets the path for all rooms, as well as the biome.
+	 * As it stands, biome 1 has 10 rooms, 2 has 20, 3 has 30, 4 has 40.
+	 * A final boss room exists but is considered its own biome at room 101.
+	 */
 	public void createRooms() {
 		tileBiome biome;
-		
 //		/// Biome 1 ///
 		biome = tileBiome.FOREST;
 		rooms[0] = new Room(biome, roomType.bottomTop, 1);
@@ -39,7 +705,6 @@ public class HouseController {
 		rooms[7] = new Room(biome, roomType.bottomTop, 8);
 		rooms[8] = new Room(biome, roomType.bottomLeft, 9);
 		rooms[9] = new Room(biome, roomType.rightLeft, 10);
-		
 //		/// Biome 2 ///
 		biome = tileBiome.MOUNTAIN;
 		rooms[10] = new Room(biome, roomType.rightLeft, 11);
@@ -62,7 +727,6 @@ public class HouseController {
 		rooms[27] = new Room(biome, roomType.leftRight, 28);
 		rooms[28] = new Room(biome, roomType.leftTop, 29);
 		rooms[29] = new Room(biome, roomType.bottomTop, 30);
-		
 //		/// Biome 3 ///
 		biome = tileBiome.URBAN;
 		rooms[30] = new Room(biome, roomType.bottomTop, 31);
@@ -95,7 +759,6 @@ public class HouseController {
 		rooms[57] = new Room(biome, roomType.bottomTop, 58);
 		rooms[58] = new Room(biome, roomType.bottomTop, 59);
 		rooms[59] = new Room(biome, roomType.bottomTop, 60);
-		
 //		/// Biome 4 ///
 		biome = tileBiome.CAVERN;
 		rooms[60] = new Room(biome, roomType.bottomTop, 61);
@@ -138,10 +801,49 @@ public class HouseController {
 		rooms[97] = new Room(biome, roomType.bottomTop, 98);
 		rooms[98] = new Room(biome, roomType.bottomTop, 99);
 		rooms[99] = new Room(biome, roomType.bottomTop, 100);
-		
 //		/// Final Room ///
 		rooms[100] = new Room(tileBiome.FINAL, roomType.bottomTop, 101);
 		
+	}
+	
+//	/// Getters & Setters ///
+	
+	public Entity getPlayer() {
+		return player;
+		
+	}
+	
+	public Entity[] getFoes() {
+		return foes;
+	}
+	
+	public String getInstance(int index) {
+		return instances[index];
+		
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public tileBiome getCurrentBiome() {
+		return currentBiome;
+	}
+
+	public void setCurrentBiome(tileBiome currentBiome) {
+		this.currentBiome = currentBiome;
+	}
+
+	public int getCurrentRoom() {
+		return currentRoom;
+	}
+
+	public void setCurrentRoom(int currentRoom) {
+		this.currentRoom = currentRoom;
 	}
 
 }
