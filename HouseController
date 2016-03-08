@@ -67,42 +67,98 @@ public class HouseController implements ControllerInterface {
 	 * Experience gained before quitting is lost, but experience gained before death is retained.
 	 * @param filePath
 	 */
-	public void saveGame(String filePath) { //Name:health:atk:def:spd:lv:exp:inventory:currentRoom
-		
+	public void save() throws IOException(){
+	StringBuilder stringBuilder = new StringBuilder();
+	stringBuilder.append(player.getName() + "\n");
+	stringBuilder.append(player.getHealth() + "\n");
+	stringBuilder.append(player.getHealthMax() + "\n");
+	stringBuilder.append(player.getAtk() + "\n");
+	stringBuilder.append(player.getDef() + "\n");
+	stringBuilder.append(player.getSpd() + "\n");
+	stringBuilder.append(player.getLevel() + "\n");
+	stringBuilder.append(player.getExp() +  "\n");
+	for(int x = 0; x < 30; x++){
+		//RETURNS ALL CAPS STRING OF TYPE
+		stringBuilder.append(inventory[x].getType() + "\n");
+		stringBuilder.append(inventory[x].getName() + "\n");
+		stringBuilder.append(inventory[x].isUsed() + "\n");
+		stringBuilder.append(inventory[x].getSize() + "\n");
 	}
+	stringBuilder.append(currentBiome);
+	String save = stringBuilder.toString();
+	PrintStream printStream = new PrintStream(new FileOutputStream(fileName));
+	printStream.print(save);
+	printStream.close();
+}
+
+public void load() throws IOException{
+	run();
+	BufferedReader bufferedReader = new BufferedReader(new FileReaader(fileName));
+	String name = bufferedReader.readLine();
+	int currHealth = Integer.parseInt(bufferedReader.readLine());
+	int maxHealth = Integer.parseInt(bufferedReader.readLine());
+	int attack = Integer.parseInt(bufferedReader.readLine());
+	int defense = Integer.parseInt(bufferedReader.readLine());
+	int speed = Integer.parseInt(bufferedReader.readLine());
+	int level = Integer.parseInt(bufferedReader.readLine());
+	int exp = Integer.parseInt(bufferedReader.readLine());
+	player = new Entity(name, currHealth, maxHealth, attack, defense, speed, level, exp);
 	
-	public void loadGame(String filePath) {
-		String save;
-		String[] parser;
-		int health;
-		int atk;
-		int def;
-		int spd;
-		String[] invParser;
+	for(int x = 0; x < 30; x++){
+		String type = bufferedReader.readLine();
+		String name = bufferedReader.readLine();
+		boolean used = Boolean.parseBoolean(bufferedReader.readLine());
+		String size = bufferedReader.readLine();
 		
-		try {
-			FileInputStream fileIn = new FileInputStream(filePath);
-			InputStreamReader reader = new InputStreamReader(fileIn);
-			BufferedReader in = new BufferedReader(reader);
-			save = in.readLine();
-			in.close();
-			parser = save.split(SAVE_REGEX);
-			this.setName(parser[0]);
-			health = Integer.parseInt(parser[1]);
-			atk = Integer.parseInt(parser[2]);
-			def = Integer.parseInt(parser[3]);
-			spd = Integer.parseInt(parser[4]);
-			this.player = new Entity(this.getName(), 0, health, atk, def, spd);
-			this.player.setLevel(Integer.parseInt(parser[4]));
-			this.player.setExp(Integer.parseInt(parser[5]));
-			invParser = parser[6].split(",");
-		}
-		catch(Exception e) {
-			UI.errorMessage("File load failed. Ensure that the file has not been tampered with, or start a new game.");
-			return;
+		Size itemSize;
+		if(size.equals("SMALL"){
+		itemSize = Size.SMALL;
+		}else if(size.equals("MEDIUM")){
+		itemSize = Size.MEDIUM;
+		}else{
+		itemSize = Size.LARGE;
 		}
 		
+		if(type.equals("HEAL")){
+			Item item = new HealItem(name, itemSize);
+			inventory[x] = item;
+		}else
+		if(type.equals("EXP")){
+			Item item = new ExpItem(name, itemSize);
+			inventory[x] = item;
+		}else
+		if(type.equals("PLACEHOLDER")){
+			Item item = new PlaceHolderItem();
+		}else
+		if(type.equals("WEAPON") || type.equals("ARMOR") || type.equals("ACCESSORY")){
+			itemType equipType;
+			if(type.equals("WEAPON")){
+			equipType = itemType.WEAPON;
+			}else if(type.equals("ARMOR")){
+			equipType = itemType.ARMOR;
+			}else{
+			equipType = itemType.ACCESSORY;
+			}
+			Item item = new Equip(equipType, name, itemSize);
+			inventory[x] = item;
+			
+		}else{
+			System.out.println("ERROR ON LOADING ITEMS");
+		}
+		
+		String biome = bufferedReader.readLine();
+		if(type.equals("FOREST")){
+			this.setCurrentBiome(tileBiome.FOREST);
+		}else if(type.equals("MOUNTAIN")){
+			this.setCurrentBiome(tileBiome.MOUNTAIN);
+		}else if(type.equals("URBAN")){
+			this.setCurrentBiome(tileBiome.URBAN);
+		}else{
+			this.setCurrentBiome(tileBiome.CAVERN);
+		}
+	bufferedReader.close();
 	}
+}
 	
 	public String getBiomeName() {
 		switch(this.getCurrentBiome()) {
